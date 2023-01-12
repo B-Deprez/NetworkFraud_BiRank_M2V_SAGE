@@ -3,7 +3,9 @@ from metapath2vec import *
 from HelperFunctions import to_bipartite
 import pandas as pd
 from sklearn import metrics
+import pickle as pkl
 import matplotlib.pyplot as plt
+from sklearn.ensemble import GradientBoostingClassifier
 
 def BiRank_subroutine(HG, labels):
     # Extract all nodes from the networks per type
@@ -49,5 +51,49 @@ def BiRank_subroutine(HG, labels):
     plt.title("AUC: " + str(np.round(metrics.auc(fpr_bi, tpr_bi), 3)))
     plt.savefig("figures/AUC_BiRank_simple.pdf")
 
-def Metapath2Vec_subroutine():
-    print("")
+def Metapath2Vec_subroutine(HG, labels):
+    dimensions = 20
+    num_walks = 1
+    walk_length = 13  # Go from claim to claim via broker twice
+    context_window_size = 10
+
+    metapaths = [
+        ["claim", "car", "claim"],
+        ["claim", "car", "policy", "car", "claim"],
+        ["claim", "car", "policy", "broker", "policy", "car", "claim"]
+    ]
+
+    node_ids, node_embeddings, node_targets = Metapath2vec(HG,
+                                                           metapaths,
+                                                           dimensions=dimensions,
+                                                           num_walks=num_walks,
+                                                           walk_length=walk_length,
+                                                           context_window_size=context_window_size)
+
+    claims_nodes = pkl.load(open("data/claims_nodes_brunosept.pkl", "rb"))
+
+    embedding_df = pd.DataFrame(node_embeddings)
+    embedding_df.index = node_ids
+    claim_embedding_df = embedding_df.loc[list(claims_nodes.index)]
+    embedding_fraud = claim_embedding_df.merge(labels, left_index=True, right_index=True)
+    embedding_fraud.sort_index(inplace=True)
+
+    train_size = int(round(0.6 * len(embedding_fraud), 0))
+
+    X_train = embedding_fraud.iloc[:train_size, :20]
+    y_train = embedding_fraud.iloc[:train_size, 20]
+
+    X_test = embedding_fraud.iloc[train_size:, :20]
+    y_test = embedding_fraud.iloc[train_size:, 20]
+
+    embedding_model = GradientBoostingClassifier(n_estimators=100,
+                                                 subsample=0.8,
+                                                 max_depth=2,
+                                                 random_state=1997).fit(X_train, y_train)
+
+    y_pred = embedding_model.predict_proba(X_test)[:, 1]
+    fpr_meta, tpr_meta, thresholds = metrics.roc_curve(y_test, y_pred)
+    plt.plot(fpr_meta, tpr_meta)
+    plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
+    plt.title("AUC: " + str(np.round(metrics.auc(fpr_meta, tpr_meta), 3)))
+    plt.savefig("figures/AUC_Metapath2vec_simple.pdf")

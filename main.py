@@ -8,7 +8,7 @@ def run_model():
     # Calculate all resutls for BiRank and generate figures
     excecute.BiRank_subroutine(HG, labels)
     # Calculate all resutls for BiRank and generate figures
-    excecute.Metapath2Vec_subroutine()
+    excecute.Metapath2Vec_subroutine(HG, labels)
 
 if __name__ == '__main__':
     print("Runnig the model...")
