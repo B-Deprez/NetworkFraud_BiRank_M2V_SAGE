@@ -50,6 +50,7 @@ def BiRank_subroutine(HG, labels):
     plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
     plt.title("AUC: " + str(np.round(metrics.auc(fpr_bi, tpr_bi), 3)))
     plt.savefig("figures/AUC_BiRank_simple.pdf")
+    plt.close()
 
 def Metapath2Vec_subroutine(HG, labels):
     dimensions = 20
@@ -97,3 +98,4 @@ def Metapath2Vec_subroutine(HG, labels):
     plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
     plt.title("AUC: " + str(np.round(metrics.auc(fpr_meta, tpr_meta), 3)))
     plt.savefig("figures/AUC_Metapath2vec_simple.pdf")
+    plt.close()
