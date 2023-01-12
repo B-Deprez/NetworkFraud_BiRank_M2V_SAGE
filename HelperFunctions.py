@@ -16,7 +16,7 @@ def load_network():
 
     HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
 
-    return(HG)
+    return(HG, labels)
 
 def to_bipartite(HG):
     HG_claims = HG.nodes("claim")
