@@ -3,6 +3,7 @@ import pandas as pd
 import scipy as sp
 import scipy.sparse
 from stellargraph import StellarGraph
+from datetime import timedelta
 
 def load_network():
     broker_nodes = pkl.load(open("data/broker_nodes_brunosept.pkl", "rb"))
@@ -48,3 +49,26 @@ def to_bipartite(HG):
 
     return(A_bipartite)
 
+def feature_engineering(claims_data):
+    reporting_delay =[min(timedelta(days = 90), delay) for delay in claims_data["SI01_D_DCL"]-claims_data["SI01_D_SURV_SIN"]]
+    claims_data["Reporting_delay"] = reporting_delay
+
+    claims_data["Day_Accident"] = claims_data["SI01_D_SURV_SIN"].dt.weekday
+    claims_data["Month_Accident"] = claims_data["SI01_D_SURV_SIN"].dt.month
+
+    claims_data["SI01_H_SIN"].replace(0, pd.NA, inplace = True)
+    decimal_hours = claims_data["SI01_H_SIN"]//100+claims_data["SI01_H_SIN"]%100/60
+
+    #Some wrong hours. This is set to 0 = <NA>
+    raw_hours = [round(h,2) if (str(h) != '<NA>') & (str(h) != 'nan') else 12 for h in decimal_hours ]
+    claims_data["Closest_Hour"] = [h if h<= 24 else 0 for h in raw_hours]
+    
+    selected_features = ["SI01_NO_SIN",
+                     "SI01_C_CAU", 
+                     "SI01_C_FAM_PROD",
+                     "Reporting_delay",
+                     "Day_Accident", 
+                     "Month_Accident",
+                     "Closest_Hour"]
+    
+    return(claims_data[selected_features])
