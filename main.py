@@ -6,9 +6,12 @@ def run_model():
     HG, labels = load_network()
 
     # Calculate all resutls for BiRank and generate figures
-    excecute.BiRank_subroutine(HG, labels)
+    pred_bi, fpr_bi, tpr_bi, res_bi = excecute.BiRank_subroutine(HG, labels)
     # Calculate all resutls for BiRank and generate figures
-    excecute.Metapath2Vec_subroutine(HG, labels)
+    pred_meta, fpr_meta, tpr_meta, res_meta = excecute.Metapath2Vec_subroutine(HG, labels)
+    
+    
+    
 
 if __name__ == '__main__':
     print("Runnig the model...")

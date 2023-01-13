@@ -44,14 +44,25 @@ def BiRank_subroutine(HG, labels):
     Claims_res, Parties_res, aMat, iterations, convergence = BiRank(ADJ, claim_nodes, party_nodes, fraudMat_test)
 
     y = labels[train_set_size:].Fraud.values
-    pred = Claims_res.sort_values("ID")[train_set_size:].ScaledScore
-    fpr_bi, tpr_bi, thresholds = metrics.roc_curve(y, pred)
+    pred_bi = Claims_res.sort_values("ID")[train_set_size:].ScaledScore
+    fpr_bi, tpr_bi, thresholds = metrics.roc_curve(y, pred_bi)
     plt.plot(fpr_bi, tpr_bi)
     plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
     plt.title("AUC: " + str(np.round(metrics.auc(fpr_bi, tpr_bi), 3)))
     plt.savefig("figures/AUC_BiRank_simple.pdf")
     plt.close()
+    
+    res_bi = pd.concat(
+        [
+            claim_nodes.reset_index().rename(columns={"ID": "Claim_ID"}), 
+            Claims_res.sort_values("ID")
+            ], 
+        axis = 1
+        )[["Claim_ID", "ScaledScore"]]
 
+    return(pred_bi, fpr_bi, tpr_bi, res_bi)
+    
+    
 def Metapath2Vec_subroutine(HG, labels):
     dimensions = 20
     num_walks = 1
@@ -92,10 +103,15 @@ def Metapath2Vec_subroutine(HG, labels):
                                                  max_depth=2,
                                                  random_state=1997).fit(X_train, y_train)
 
-    y_pred = embedding_model.predict_proba(X_test)[:, 1]
-    fpr_meta, tpr_meta, thresholds = metrics.roc_curve(y_test, y_pred)
+    y_pred_meta = embedding_model.predict_proba(X_test)[:, 1]
+    fpr_meta, tpr_meta, thresholds = metrics.roc_curve(y_test, y_pred_meta)
     plt.plot(fpr_meta, tpr_meta)
     plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
     plt.title("AUC: " + str(np.round(metrics.auc(fpr_meta, tpr_meta), 3)))
     plt.savefig("figures/AUC_Metapath2vec_simple.pdf")
     plt.close()
+
+    return(y_pred_meta, fpr_meta, tpr_meta, embedding_fraud)
+
+def fullModel_subroutine(basic_features, BiRank_embedding, Metapath2Vec_embedding):
+    print("")
