@@ -58,7 +58,7 @@ def BiRank_subroutine(HG, labels):
             Claims_res.sort_values("ID")
             ], 
         axis = 1
-        )[["Claim_ID", "ScaledScore"]]
+        )[["Claim_ID", "StdScore"]]
 
     return(pred_bi, fpr_bi, tpr_bi, res_bi)
     
@@ -113,5 +113,89 @@ def Metapath2Vec_subroutine(HG, labels):
 
     return(y_pred_meta, fpr_meta, tpr_meta, embedding_fraud)
 
-def fullModel_subroutine(basic_features, BiRank_embedding, Metapath2Vec_embedding):
-    print("")
+def training_gradient_boosting(df_full, selected_features, name):
+    train_size = int(round(0.6 * len(df_full), 0))
+    X_full = df_full[selected_features]
+    
+    y_full = df_full["Fraud_y"]
+                
+    X_train = X_full.iloc[:train_size, :]
+    y_train = y_full[:train_size]
+
+    X_test = X_full.iloc[train_size:, :]
+    y_test = y_full[train_size:]
+    
+    embedding_model = GradientBoostingClassifier(n_estimators=100,
+                                                 subsample=0.8,
+                                                 max_depth=2,
+                                                 random_state=1997).fit(X_train, y_train)
+
+    y_pred = embedding_model.predict_proba(X_test)[:, 1]
+    fpr, tpr, thresholds = metrics.roc_curve(y_test, y_pred)
+    plt.plot(fpr, tpr)
+    plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
+    plt.title("AUC: " + str(np.round(metrics.auc(fpr, tpr), 3)))
+    plt.savefig("figures/AUC_full_model_"+str(name)+".pdf")
+    plt.close()
+    
+
+def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
+    print("Putting everything together.")
+    df_full = df_basic_features.merge(
+        df_BiRank_embedding, 
+        left_on = "SI01_NO_SIN",
+        right_on = "Claim_ID", 
+        how = "inner"
+        ).merge(
+            df_Metapath2Vec_embedding.reset_index(),
+            left_on = "Claim_ID", 
+            right_on = "index", 
+            how = "inner"
+            ).merge(
+                labels.reset_index(),
+                left_on = "Claim_ID", 
+                right_on = "SI01_NO_SIN",
+                how = "inner"
+                )
+
+    #Basic Model
+    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU"]
+    training_gradient_boosting(df_full, selected_features, "simple")
+    
+    
+    #BiRank
+    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
+                         "StdScore",
+                         #"n1_q1", "n1_med", "n1_max"
+                         ]
+    training_gradient_boosting(df_full, selected_features, "BiRank")
+    
+    #Metapath2Vec
+    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
+                         0,                   1,                   2,
+                         3,                   4,                   5,
+                         6,                   7,                   8,
+                         9,                  10,                  11,
+                        12,                  13,                  14,
+                        15,                  16,                  17,
+                        18,                  19]
+    training_gradient_boosting(df_full, selected_features, "Metapath2Vec")
+    
+    #Full Model
+    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
+                         "StdScore",
+                         0,                   1,                   2,
+                         3,                   4,                   5,
+                         6,                   7,                   8,
+                         9,                  10,                  11,
+                        12,                  13,                  14,
+                        15,                  16,                  17,
+                        18,                  19]
+    training_gradient_boosting(df_full, selected_features, "Total")
+    
+    
+    
+    
+    
+    
+    

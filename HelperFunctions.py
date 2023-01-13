@@ -1,9 +1,11 @@
 import pickle as pkl
 import pandas as pd
 import scipy as sp
+import numpy as np
 import scipy.sparse
 from stellargraph import StellarGraph
 from datetime import timedelta
+from sklearn.preprocessing import OrdinalEncoder
 
 def load_network():
     broker_nodes = pkl.load(open("data/broker_nodes_brunosept.pkl", "rb"))
@@ -11,13 +13,15 @@ def load_network():
     claims_nodes = pkl.load(open("data/claims_nodes_brunosept.pkl", "rb"))
     policy_nodes = pkl.load(open("data/policy_nodes_brunosept.pkl", "rb"))
     edges = pkl.load(open("data/edges_brunosept.pkl", "rb"))
+    
+    claim_data = pkl.load(open("data/claims_data", "rb"))
 
     labels = pd.DataFrame(pkl.load(open("data/Y", "rb")))
     labels.rename(columns={"y1": "Fraud", "y2": "Labelled"}, inplace=True)
 
     HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
 
-    return(HG, labels)
+    return(HG, labels, claim_data)
 
 def to_bipartite(HG):
     HG_claims = HG.nodes("claim")
@@ -71,4 +75,48 @@ def feature_engineering(claims_data):
                      "Month_Accident",
                      "Closest_Hour"]
     
-    return(claims_data[selected_features])
+    claims_data = claims_data[selected_features]
+    
+    #Encode all factor features using sequential encoding
+    #Need to know the factor columns first
+    all_columns =  set(claims_data.columns)
+    numeric_columns = set(claims_data.describe().columns)
+    factor_columns = all_columns.difference(numeric_columns).difference(set(["SI01_NO_SIN"]))
+    #Do the encoding
+    columns = [*factor_columns]
+    first_column = columns[0]
+    for column in columns:
+        enc = OrdinalEncoder()
+        X_encoder = enc.fit(claims_data[[column]])
+        X_encoded = X_encoder.transform(claims_data[[column]])
+        if column == first_column:
+            X_full_encoded = X_encoded
+        else:
+            X_full_encoded = np.hstack((X_full_encoded, X_encoded))
+        
+    X_full_encoded = np.hstack((X_full_encoded, claims_data[["SI01_NO_SIN"]]))
+    
+    #Get the encoding ready to add to full dataset again
+    X_full_encoded_df = pd.DataFrame(X_full_encoded)
+    columns.append("SI01_NO_SIN")
+    X_full_encoded_df.columns = columns
+    
+    columns_numeric = [*numeric_columns]
+    columns_numeric.append("SI01_NO_SIN")
+    df_full = claims_data[columns_numeric].merge(X_full_encoded_df, on = "SI01_NO_SIN")
+    df_full['Reporting_delay']=df_full['Reporting_delay'].dt.days
+    
+    return(df_full)
+
+
+
+
+
+
+
+
+
+
+
+
+
