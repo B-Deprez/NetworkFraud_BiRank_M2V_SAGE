@@ -30,11 +30,12 @@ def BiRank_subroutine(HG, labels):
      # Do the train-test split for both the nodes and their fraud labels
     number_claims = ADJ.shape[0]
     train_set_size = int(np.round(0.6 * number_claims))
+    split_size = int(round(train_size/2,0))
     test_set_size = number_claims - train_set_size
 
-    fraud_train = {"FraudInd": labels["Fraud"].values[:train_set_size]}
+    fraud_train = {"FraudInd": labels["Fraud"].values[:split_size]}
     fraudMat_train = pd.DataFrame(fraud_train)
-    test_set_fraud = {"FraudInd": [0] * test_set_size}
+    test_set_fraud = {"FraudInd": [0] * (test_set_size + (train_size - split_size))}
     fraudMat_test_set = pd.DataFrame(test_set_fraud)
     fraudMat_test = fraudMat_train.append(fraudMat_test_set)
 
@@ -115,12 +116,14 @@ def Metapath2Vec_subroutine(HG, labels):
 
 def training_gradient_boosting(df_full, selected_features, name):
     train_size = int(round(0.6 * len(df_full), 0))
+    split_size = int(round(train_size/2,0))
+    
     X_full = df_full[selected_features]
     
     y_full = df_full["Fraud_y"]
                 
-    X_train = X_full.iloc[:train_size, :]
-    y_train = y_full[:train_size]
+    X_train = X_full.iloc[split_size:train_size, :]
+    y_train = y_full[split_size:train_size]
 
     X_test = X_full.iloc[train_size:, :]
     y_test = y_full[train_size:]
