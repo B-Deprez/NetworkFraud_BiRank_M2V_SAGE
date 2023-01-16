@@ -48,7 +48,7 @@ def BiRank_subroutine(HG, labels):
     fraudMat_test = fraudMat_train.append(fraudMat_test_set)
     
     Claims_res_1, Parties_res_1, aMat_1, iterations_1, convergence_1 = BiRank(ADJ_train, claims_train, party_nodes, fraudMat_test)
-    print("\n round 1 done \n")
+
     #Final scores for real test set
     fraud_score_train_validate = Claims_res_1.sort_values("ID")["Score"].values[:train_set_size]
     
@@ -72,11 +72,9 @@ def BiRank_subroutine(HG, labels):
     plt.close()
     
     
-    #### Addtional code ####  
     Claims_res_test = Claims_res.sort_values("ID")[train_set_size:]
     frames = [Claims_res_1, Claims_res_test]
     Claims_res = pd.concat(frames)
-    #### END ####
     
     res_bi = pd.concat(
         [
