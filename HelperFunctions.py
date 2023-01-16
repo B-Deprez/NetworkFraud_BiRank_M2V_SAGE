@@ -25,6 +25,7 @@ def load_network():
     labels = pd.DataFrame(pkl.load(open("data/Y", "rb")))
     labels.rename(columns={"y1": "Fraud", "y2": "Labelled"}, inplace=True)
     labels = labels.loc[claims_nodes.index]
+    labels.index.name = "SI01_NO_SIN"
     
     HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
 

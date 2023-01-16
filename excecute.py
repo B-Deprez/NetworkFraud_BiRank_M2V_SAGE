@@ -144,9 +144,8 @@ def training_gradient_boosting(df_full, selected_features, name):
     plt.savefig("figures/AUC_full_model_"+str(name)+".pdf")
     plt.close()
     
-
-def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
-    print("Putting everything together.")
+    
+def fullModel_AUC(df_basic_features, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
     df_full = df_basic_features.merge(
         df_BiRank_embedding, 
         left_on = "SI01_NO_SIN",
@@ -198,9 +197,16 @@ def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec
                         15,                  16,                  17,
                         18,                  19]
     training_gradient_boosting(df_full, selected_features, "Total")
+
+def fullModel_comp_lift():    
+    print("")
+
+def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
+    print("Putting everything together.")
     
+    fullModel_AUC(df_basic_features, df_BiRank_embedding, df_Metapath2Vec_embedding, labels)
     
-    
+    fullModel_comp_lift()
     
     
     
