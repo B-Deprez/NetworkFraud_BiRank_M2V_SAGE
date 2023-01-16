@@ -7,6 +7,7 @@ def run_model():
     
     # Calculate all resutls for BiRank and generate figures
     pred_bi, fpr_bi, tpr_bi, res_bi = excecute.BiRank_subroutine(HG, labels)
+
     # Calculate all resutls for BiRank and generate figures
     pred_meta, fpr_meta, tpr_meta, res_meta = excecute.Metapath2Vec_subroutine(HG, labels)
     
