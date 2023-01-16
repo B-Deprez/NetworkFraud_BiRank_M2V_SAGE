@@ -30,12 +30,17 @@ def BiRank_subroutine(HG, labels):
      # Do the train-test split for both the nodes and their fraud labels
     number_claims = ADJ.shape[0]
     train_set_size = int(np.round(0.6 * number_claims))
-    split_size = int(round(train_size/2,0))
+    split_size = int(round(train_set_size/2,0))
     test_set_size = number_claims - train_set_size
 
     fraud_train = {"FraudInd": labels["Fraud"].values[:split_size]}
+    validate_set_fraud = {"FraudInd": [0]*(train_set_size - split_size)}
+    
     fraudMat_train = pd.DataFrame(fraud_train)
-    test_set_fraud = {"FraudInd": [0] * (test_set_size + (train_size - split_size))}
+    fraudMat_validate_set = pd.DataFrame(validate_set_fraud)
+    fraudMat_train = fraudMat_train.append(fraudMat_validate_set)
+    
+    test_set_fraud = {"FraudInd": [0] * test_set_size}
     fraudMat_test_set = pd.DataFrame(test_set_fraud)
     fraudMat_test = fraudMat_train.append(fraudMat_test_set)
 
@@ -159,7 +164,7 @@ def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec
                 left_on = "Claim_ID", 
                 right_on = "SI01_NO_SIN",
                 how = "inner"
-                )
+                ).sort_values("Claim_ID")
 
     #Basic Model
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU"]

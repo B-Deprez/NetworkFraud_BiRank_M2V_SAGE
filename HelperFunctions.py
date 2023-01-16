@@ -8,17 +8,24 @@ from datetime import timedelta
 from sklearn.preprocessing import OrdinalEncoder
 
 def load_network():
+    claim_data = pkl.load(open("data/claims_data", "rb"))
+
     broker_nodes = pkl.load(open("data/broker_nodes_brunosept.pkl", "rb"))
     cars_nodes = pkl.load(open("data/cars_nodes_brunosept.pkl", "rb"))
     claims_nodes = pkl.load(open("data/claims_nodes_brunosept.pkl", "rb"))
     policy_nodes = pkl.load(open("data/policy_nodes_brunosept.pkl", "rb"))
     edges = pkl.load(open("data/edges_brunosept.pkl", "rb"))
-    
-    claim_data = pkl.load(open("data/claims_data", "rb"))
 
+    to_exclude = set(claims_nodes.index).difference(set(claim_data["SI01_NO_SIN"].values))
+    to_include = edges.target[edges.target.isin(list(to_exclude))==False].index
+    edges = edges.loc[to_include]
+
+    claims_nodes = claims_nodes.loc[np.array(set(claim_data["SI01_NO_SIN"].values).intersection(set(claims_nodes.index)))]
+    
     labels = pd.DataFrame(pkl.load(open("data/Y", "rb")))
     labels.rename(columns={"y1": "Fraud", "y2": "Labelled"}, inplace=True)
-
+    labels = labels.loc[claims_nodes.index]
+    
     HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
 
     return(HG, labels, claim_data)
