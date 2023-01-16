@@ -17,7 +17,7 @@ def BiRank_subroutine(HG, labels):
     HG_brokers = HG.nodes("broker")
 
     # Split the nodes into two groups
-    claim_nodes = pd.DataFrame({"ID": HG_claims}).set_index("ID")
+    claim_nodes = pd.DataFrame({"ID": HG_claims}).sort_values("ID").set_index("ID")
 
     HG_parties = np.concatenate((HG_cars, HG_policies, HG_brokers))
     party_nodes = pd.DataFrame({"ID": HG_parties}).set_index("ID")
@@ -76,7 +76,6 @@ def BiRank_subroutine(HG, labels):
     Claims_res_test = Claims_res.sort_values("ID")[train_set_size:]
     frames = [Claims_res_1, Claims_res_test]
     Claims_res = pd.concat(frames)
-    
     #### END ####
     
     res_bi = pd.concat(
@@ -226,7 +225,7 @@ def comp_plot(y_test, y_pred_1, y_pred_2, name):
     autolabel(rects1)
     autolabel(rects2)
 
-    plt.savefig("Complementary_"+str(name)+".pdf")
+    plt.savefig("figures/Complementary_"+str(name)+".pdf")
     plt.close()
 
 
