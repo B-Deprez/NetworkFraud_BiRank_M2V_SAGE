@@ -88,11 +88,9 @@ def Metapath2Vec_subroutine(HG, labels):
                                                            walk_length=walk_length,
                                                            context_window_size=context_window_size)
 
-    claims_nodes = pkl.load(open("data/claims_nodes_brunosept.pkl", "rb"))
-
     embedding_df = pd.DataFrame(node_embeddings)
     embedding_df.index = node_ids
-    claim_embedding_df = embedding_df.loc[list(claims_nodes.index)]
+    claim_embedding_df = embedding_df.loc[list(HG.nodes("claim"))]
     embedding_fraud = claim_embedding_df.merge(labels, left_index=True, right_index=True)
     embedding_fraud.sort_index(inplace=True)
 
