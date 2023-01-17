@@ -3,10 +3,10 @@ from metapath2vec import *
 from HelperFunctions import to_bipartite
 import pandas as pd
 from sklearn import metrics
-import pickle as pkl
 import matplotlib.pyplot as plt
 from sklearn.ensemble import GradientBoostingClassifier
 import Metrics
+import numpy as np
 
 def BiRank_subroutine(HG, labels):
     print("Starting BiRank calculations")
@@ -171,6 +171,17 @@ def AUC_plot(y_test, y_pred, close_plot, name, plotname):
         plt.legend()
         plt.savefig("figures/AUC_"+str(plotname)+".pdf")
         plt.close()
+        
+def AP_plot(y_test, y_pred, close_plot, name, plotname):
+    precision_base, recall_base, thresholds = metrics.precision_recall_curve(y_test,y_pred)
+    AP = np.round(metrics.average_precision_score(y_test, y_pred),3)
+    plt.plot(recall_base,precision_base, label = name +": "+ str(AP), alpha =0.7)
+    
+    if close_plot:
+        plt.title("Average Precision")
+        plt.legend()
+        plt.savefig("figures/AP_"+str(plotname)+".pdf")
+        plt.close()
     
 def lift_plot(y_test, y_pred, close_plot, name, plotname):
     steps = np.arange(start = 0.05, stop = 1, step = 0.001)
@@ -286,6 +297,12 @@ def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec
     AUC_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     AUC_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
     AUC_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
+    
+    #Plot the AP together
+    AP_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
+    AP_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
+    AP_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
+    AP_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
 
     #Plot the lift curves
     lift_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
