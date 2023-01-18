@@ -7,7 +7,7 @@ from stellargraph import StellarGraph
 from datetime import timedelta
 from sklearn.preprocessing import OrdinalEncoder
 
-def load_network():
+def load_network(fraud_node_tf=False):
     claim_data = pkl.load(open("data/claims_data", "rb"))
 
     broker_nodes = pkl.load(open("data/broker_nodes_brunosept.pkl", "rb"))
@@ -27,7 +27,25 @@ def load_network():
     labels = labels.loc[claims_nodes.index]
     labels.index.name = "SI01_NO_SIN"
     
-    HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
+    if fraud_node_tf:
+        #Add the artificial node
+        fraud_node = pd.DataFrame(index =["F"])
+        fraud_node.index.rename("ID", inplace = True)
+        #Edge from claim to  node must exist when fraud label = 1
+        fraud_edges = labels[["Fraud"]].reset_index()
+        fraud_edges = fraud_edges[fraud_edges["Fraud"] == 1]
+        fraud_edges["target"] = fraud_edges["SI01_NO_SIN"]
+        fraud_edges["source"] = "F"
+        fraud_edges = fraud_edges[["source", "target"]]
+        #Add new edges to existing ones
+        edges_F = pd.concat([edges, fraud_edges]).reset_index(drop=True)
+        #Build graph with artificial node
+        HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes,
+                           "fraud": fraud_node}, edges_F)
+        
+    else:
+        #No artificial node is added
+        HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
 
     return(HG, labels, claim_data)
 

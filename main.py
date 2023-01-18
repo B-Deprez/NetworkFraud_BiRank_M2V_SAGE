@@ -3,13 +3,14 @@ import excecute
 
 def run_model():
     # Start by initialising the data
-    HG, labels, claim_data = load_network()
+    HG, labels, claim_data = load_network(fraud_node_tf=False)
+    HG_F, labels, claim_data = load_network(fraud_node_tf=True)
     
     # Calculate all resutls for BiRank and generate figures
     pred_bi, fpr_bi, tpr_bi, res_bi = excecute.BiRank_subroutine(HG, labels)
 
     # Calculate all resutls for BiRank and generate figures
-    pred_meta, fpr_meta, tpr_meta, res_meta = excecute.Metapath2Vec_subroutine(HG, labels)
+    pred_meta, fpr_meta, tpr_meta, res_meta = excecute.Metapath2Vec_subroutine(HG_F, labels)
     
     # Feature engineering on claim specific data + selection of features
     claim_data_features = feature_engineering(claim_data)
