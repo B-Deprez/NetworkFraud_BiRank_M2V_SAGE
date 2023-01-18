@@ -21,7 +21,7 @@ def run_model(fraud_node_tf):
 
 if __name__ == '__main__':
     print("Runnig the model...")
-    run_model(fraud_node_tf = True) #run all models
+    run_model(fraud_node_tf = False) #run all models
     print("All done!")
 
 
