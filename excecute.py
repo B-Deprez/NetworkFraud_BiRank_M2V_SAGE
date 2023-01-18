@@ -87,7 +87,7 @@ def BiRank_subroutine(HG, labels):
     return(pred_bi, fpr_bi, tpr_bi, res_bi)
     
     
-def Metapath2Vec_subroutine(HG, labels):
+def Metapath2Vec_subroutine(HG, labels, fraud_node_tf):
     dimensions = 20
     num_walks = 1
     walk_length = 13  # Go from claim to claim via broker twice
@@ -98,6 +98,9 @@ def Metapath2Vec_subroutine(HG, labels):
         ["claim", "car", "policy", "car", "claim"],
         ["claim", "car", "policy", "broker", "policy", "car", "claim"]
     ]
+    
+    if fraud_node_tf:
+        metapaths.append(["claim", "fraud", "claim"])
 
     node_ids, node_embeddings, node_targets = Metapath2vec(HG,
                                                            metapaths,
