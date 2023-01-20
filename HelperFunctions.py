@@ -6,6 +6,7 @@ import scipy.sparse
 from stellargraph import StellarGraph
 from datetime import timedelta
 from sklearn.preprocessing import OrdinalEncoder
+import networkx as nx
 
 def load_network(fraud_node_tf=False):
     claim_data = pkl.load(open("data/claims_data", "rb"))
@@ -134,15 +135,55 @@ def feature_engineering(claims_data):
     
     return(df_full)
 
+def geodesic(G):
+    simple_graph = nx.Graph(G)
+    cycles_G = nx.cycle_basis(simple_graph)
 
+    dict_cycle_lengths = {}
+    dict_cycle_num = {}
+    for cycle in cycles_G:
+        for node in cycle:
+            if node not in dict_cycle_lengths:
+                dict_cycle_lengths[node] = []
+                dict_cycle_num[node] = 0
+            dict_cycle_lengths[node].append(len(cycle))
+            dict_cycle_num[node] += 1
 
+    dict_geodesic = dict((n, min(l)) for n, l in dict_cycle_lengths.items())
+    df_geodesic = pd.DataFrame({'Item': [item for item in dict_geodesic],
+                                'Geodesic distance': [dict_geodesic[item] for item in dict_geodesic],
+                                'Number of cycles': [dict_cycle_num[item] for item in dict_cycle_num]})
+    return(df_geodesic)
 
-
-
-
-
-
-
+def simple_network_feature_engineering(HG):
+    nodes_nobrokers = list(HG.nodes("claim")) + list(HG.nodes("car")) + list(HG.nodes("policy"))
+    HG_nobrokers = HG.subgraph(nodes_nobrokers)
+    HG_nx_nobrokers = HG_nobrokers.to_networkx()
+    
+    
+    ## Features based on cycles
+    # Select the cycle-features for the claims only 
+    full_geo_G = geodesic(HG_nx_nobrokers)
+    Geo_claims = full_geo_G[full_geo_G['Item'].isin(HG.nodes("claim"))]
+    # We set the value for claims not part of a cycle to 0
+    full_geo_claims = pd.DataFrame({"Item":HG.nodes("claim")}).merge(Geo_claims, on = "Item", how = "outer").fillna(0)
+    
+    ## Features based on centrality
+    # Degree centrality
+    HG_nx = HG.to_networkx()
+    deg_cen = nx.degree_centrality(HG_nx)
+    df_degcen = pd.DataFrame({'claim': [claim for claim in HG.nodes("claim")],
+                              'degree': [deg_cen[claim] for claim in HG.nodes("claim")] })
+    
+    # Calculated using other sub-routine to save time
+    centralities = pd.read_csv("Centralities\Centralities.csv", low_memory=False)
+    
+    claim_centralities = centralities[centralities["node_id"].isin(HG.nodes("claim"))].sort_values("node_id").fillna(0)
+    claim_centralities = claim_centralities.merge(df_degcen, left_on = "node_id", right_on = "claim")[["node_id", "Closeness Centrality", "Betweenness Centrality", "degree"]]
+    
+    df_simple = full_geo_claims.merge(claim_centralities, left_on = "Item", right_on = "node_id")[["node_id", "Geodesic distance", "Number of cycles", "Closeness Centrality", "Betweenness Centrality", "degree"]]
+    
+    return(df_simple)
 
 
 
