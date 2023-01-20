@@ -6,6 +6,7 @@ import scipy.sparse
 from stellargraph import StellarGraph
 from datetime import timedelta
 from sklearn.preprocessing import OrdinalEncoder
+import networkx as nx
 
 def load_network(fraud_node_tf=False):
     claim_data = pkl.load(open("data/claims_data", "rb"))
@@ -134,15 +135,30 @@ def feature_engineering(claims_data):
     
     return(df_full)
 
+def geodesic(G):
+    simple_graph = nx.Graph(G)
+    cycles_G = nx.cycle_basis(simple_graph)
 
+    dict_cycle_lengths = {}
+    dict_cycle_num = {}
+    for cycle in cycles_G:
+        for node in cycle:
+            if node not in dict_cycle_lengths:
+                dict_cycle_lengths[node] = []
+                dict_cycle_num[node] = 0
+            dict_cycle_lengths[node].append(len(cycle))
+            dict_cycle_num[node] += 1
 
+    dict_geodesic = dict((n, min(l)) for n, l in dict_cycle_lengths.items())
+    df_geodesic = pd.DataFrame({'Item': [item for item in dict_geodesic],
+                                'Geodesic distance': [dict_geodesic[item] for item in dict_geodesic],
+                                'Number of cycles': [dict_cycle_num[item] for item in dict_cycle_num]})
+    return(df_geodesic)
 
-
-
-
-
-
-
-
-
+def simple_network_feature_engineering(HG):
+    nodes_nobrokers = list(HG.nodes("claim")) + list(HG.nodes("contract")) + list(HG.nodes("counterparty"))
+    HG_nobrokers = HG.subgraph(nodes_nobrokers)
+    Nx_bipartite_nobrokers = HG_nobrokers.to_networkx()
+    
+    
 
