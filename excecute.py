@@ -241,29 +241,40 @@ def comp_plot(y_test, y_pred_1, y_pred_2, name):
     plt.close()
 
 
-def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
+def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
     print("Putting everything together.")
     df_full = df_basic_features.merge(
-        df_BiRank_embedding, 
+        df_simple_network,
         left_on = "SI01_NO_SIN",
-        right_on = "Claim_ID", 
+        right_on = "node_id", 
         how = "inner"
         ).merge(
-            df_Metapath2Vec_embedding.reset_index(),
-            left_on = "Claim_ID", 
-            right_on = "index", 
+            df_BiRank_embedding, 
+            left_on = "SI01_NO_SIN",
+            right_on = "Claim_ID",  
             how = "inner"
             ).merge(
-                labels.reset_index(),
+                df_Metapath2Vec_embedding.reset_index(),
                 left_on = "Claim_ID", 
-                right_on = "SI01_NO_SIN",
+                right_on = "index", 
                 how = "inner"
-                ).sort_values("Claim_ID")
+                ).merge(
+                    labels.reset_index(),
+                    left_on = "Claim_ID", 
+                    right_on = "SI01_NO_SIN",
+                    how = "inner"
+                    ).sort_values("Claim_ID")
 
     #Basic Model
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU"]
     y_test_simple, y_pred_simple = training_gradient_boosting(df_full, selected_features, "simple")
     
+    #Simple network feature
+    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
+                         "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree"
+                         ]
+    
+    y_test_simple_network, y_pred_simple_network = training_gradient_boosting(df_full, selected_features, "simple")
     
     #BiRank
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
@@ -286,6 +297,7 @@ def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec
     #Full Model
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
                          "StdScore",
+                         "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree",
                          0,                   1,                   2,
                          3,                   4,                   5,
                          6,                   7,                   8,
@@ -297,23 +309,27 @@ def fullModel_subroutine(df_basic_features, df_BiRank_embedding, df_Metapath2Vec
     
     #Plot the AUC together
     AUC_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
+    AUC_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     AUC_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     AUC_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
     AUC_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
     
     #Plot the AP together
     AP_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
+    AP_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     AP_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     AP_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
     AP_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
 
     #Plot the lift curves
     lift_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
+    lift_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     lift_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     lift_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
     lift_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
     
     #Plot the complementarity
+    comp_plot(y_test_simple, y_pred_simple, y_pred_simple_network, name="Simple Network Features")
     comp_plot(y_test_simple, y_pred_simple, y_pred_BiRank, name = "BiRank")
     comp_plot(y_test_simple, y_pred_simple, y_pred_Meta, name = "Meta")
     comp_plot(y_test_simple, y_pred_simple, y_pred_full, name = "Full")

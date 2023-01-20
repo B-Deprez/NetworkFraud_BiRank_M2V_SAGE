@@ -156,7 +156,7 @@ def geodesic(G):
     return(df_geodesic)
 
 def simple_network_feature_engineering(HG):
-    nodes_nobrokers = list(HG.nodes("claim")) + list(HG.nodes("contract")) + list(HG.nodes("counterparty"))
+    nodes_nobrokers = list(HG.nodes("claim")) + list(HG.nodes("car")) + list(HG.nodes("policy"))
     HG_nobrokers = HG.subgraph(nodes_nobrokers)
     HG_nx_nobrokers = HG_nobrokers.to_networkx()
     
@@ -172,14 +172,18 @@ def simple_network_feature_engineering(HG):
     # Degree centrality
     HG_nx = HG.to_networkx()
     deg_cen = nx.degree_centrality(HG_nx)
-    df_degcen = pd.DataFrame({'claim': [claim for claim, att in HG.nodes("claim")],
-                              'degree': [deg_cen[claim] for claim, att in HG.nodes("claim")] })
+    df_degcen = pd.DataFrame({'claim': [claim for claim in HG.nodes("claim")],
+                              'degree': [deg_cen[claim] for claim in HG.nodes("claim")] })
     
     # Calculated using other sub-routine to save time
     centralities = pd.read_csv("Centralities\Centralities.csv", low_memory=False)
     
     claim_centralities = centralities[centralities["node_id"].isin(HG.nodes("claim"))].sort_values("node_id").fillna(0)
     claim_centralities = claim_centralities.merge(df_degcen, left_on = "node_id", right_on = "claim")[["node_id", "Closeness Centrality", "Betweenness Centrality", "degree"]]
+    
+    df_simple = full_geo_claims.merge(claim_centralities, left_on = "Item", right_on = "node_id")[["node_id", "Geodesic distance", "Number of cycles", "Closeness Centrality", "Betweenness Centrality", "degree"]]
+    
+    return(df_simple)
 
 
 
