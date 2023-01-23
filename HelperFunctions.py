@@ -8,45 +8,72 @@ from datetime import timedelta
 from sklearn.preprocessing import OrdinalEncoder
 import networkx as nx
 
-def load_network(fraud_node_tf=False):
-    claim_data = pkl.load(open("data/claims_data", "rb"))
+def load_network(dataset_1,fraud_node_tf=False):
+    if dataset_1:
+        claim_data = pkl.load(open( "data/claims_data", "rb" ))
+        broker_nodes = pkl.load(open("data/broker_nodes_brunosept.pkl", "rb"))
+        cars_nodes = pkl.load(open("data/cars_nodes_brunosept.pkl", "rb"))
+        claims_nodes = pkl.load(open("data/claims_nodes_brunosept.pkl", "rb"))
+        policy_nodes = pkl.load(open("data/policy_nodes_brunosept.pkl", "rb"))
+        edges = pkl.load(open("data/edges_brunosept.pkl", "rb"))
 
-    broker_nodes = pkl.load(open("data/broker_nodes_brunosept.pkl", "rb"))
-    cars_nodes = pkl.load(open("data/cars_nodes_brunosept.pkl", "rb"))
-    claims_nodes = pkl.load(open("data/claims_nodes_brunosept.pkl", "rb"))
-    policy_nodes = pkl.load(open("data/policy_nodes_brunosept.pkl", "rb"))
-    edges = pkl.load(open("data/edges_brunosept.pkl", "rb"))
+        to_exclude = set(claims_nodes.index).difference(set(claim_data["SI01_NO_SIN"].values))
+        to_include = edges.target[edges.target.isin(list(to_exclude))==False].index
+        edges = edges.loc[to_include]
 
-    to_exclude = set(claims_nodes.index).difference(set(claim_data["SI01_NO_SIN"].values))
-    to_include = edges.target[edges.target.isin(list(to_exclude))==False].index
-    edges = edges.loc[to_include]
-
-    claims_nodes = claims_nodes.loc[np.array(set(claim_data["SI01_NO_SIN"].values).intersection(set(claims_nodes.index)))]
+        claims_nodes = claims_nodes.loc[np.array(set(claim_data["SI01_NO_SIN"].values).intersection(set(claims_nodes.index)))]
     
-    labels = pd.DataFrame(pkl.load(open("data/Y", "rb")))
-    labels.rename(columns={"y1": "Fraud", "y2": "Labelled"}, inplace=True)
-    labels = labels.loc[claims_nodes.index]
-    labels.index.name = "SI01_NO_SIN"
+        labels = pd.DataFrame(pkl.load(open("data/Y", "rb")))
+        labels.rename(columns={"y1": "Fraud", "y2": "Labelled"}, inplace=True)
+        labels = labels.loc[claims_nodes.index]
+        labels.index.name = "SI01_NO_SIN"
     
-    if fraud_node_tf:
-        #Add the artificial node
-        fraud_node = pd.DataFrame(index =["F"])
-        fraud_node.index.rename("ID", inplace = True)
-        #Edge from claim to  node must exist when fraud label = 1
-        fraud_edges = labels[["Fraud"]].reset_index()
-        fraud_edges = fraud_edges[fraud_edges["Fraud"] == 1]
-        fraud_edges["target"] = fraud_edges["SI01_NO_SIN"]
-        fraud_edges["source"] = "F"
-        fraud_edges = fraud_edges[["source", "target"]]
-        #Add new edges to existing ones
-        edges_F = pd.concat([edges, fraud_edges]).reset_index(drop=True)
-        #Build graph with artificial node
-        HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes,
-                           "fraud": fraud_node}, edges_F)
+        if fraud_node_tf:
+            #Add the artificial node
+            fraud_node = pd.DataFrame(index =["F"])
+            fraud_node.index.rename("ID", inplace = True)
+            #Edge from claim to  node must exist when fraud label = 1
+            fraud_edges = labels[["Fraud"]].reset_index()
+            fraud_edges = fraud_edges[fraud_edges["Fraud"] == 1]
+            fraud_edges["target"] = fraud_edges["SI01_NO_SIN"]
+            fraud_edges["source"] = "F"
+            fraud_edges = fraud_edges[["source", "target"]]
+            #Add new edges to existing ones
+            edges_F = pd.concat([edges, fraud_edges]).reset_index(drop=True)
+            #Build graph with artificial node
+            HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes,
+                               "fraud": fraud_node}, edges_F)
         
+        else:
+            #No artificial node is added
+            HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
+
+    
     else:
-        #No artificial node is added
-        HG = StellarGraph({"claim": claims_nodes, "car": cars_nodes, "policy": policy_nodes, "broker": broker_nodes}, edges)
+        claim_data = pkl.load(open( "data/claims_data", "rb" ))
+        counterparty_data = pkl.load(open("data/counterparties", "rb"))
+        labels = pkl.load(open("data/frauds", "rb")).sort_values("SI01_NO_SIN")
+
+        claims_nodes = claim_data[["SI01_NO_SIN"]].drop_duplicates().set_index("SI01_NO_SIN").sort_values("SI01_NO_SIN")
+        contract_nodes = claim_data[["SI01_NO_CNT"]].drop_duplicates().set_index("SI01_NO_CNT")
+        broker_nodes = claim_data[["SI01_C_INTER"]].drop_duplicates().set_index("SI01_C_INTER")
+        
+        counterparty_nodes = counterparty_data[["C-TIE"]].drop_duplicates()
+        counterparty_nodes = counterparty_nodes[[cp not in broker_nodes.index for cp in counterparty_nodes["C-TIE"]]]
+        counterparty_nodes = counterparty_nodes.set_index("C-TIE")
+        
+        claim_contract = claim_data[["SI01_NO_SIN", "SI01_NO_CNT"]].reset_index(drop=True)
+        claim_broker = claim_data[["SI01_NO_SIN", "SI01_C_INTER"]].reset_index(drop=True)
+        claim_counter = counterparty_data[["NO-SIN", "C-TIE"]].reset_index(drop=True)
+        
+        claim_contract.columns = ["source", "target"]
+        claim_broker.columns = ["source", "target"]
+        claim_counter.columns = ["source", "target"]
+        
+        edges = pd.concat([claim_contract, claim_broker,claim_counter]).reset_index(drop = True)
+        
+        HG = StellarGraph({"claim" : claims_nodes, "contract" : contract_nodes, "broker" : broker_nodes, "counterparty" : counterparty_nodes}, edges)
+        
 
     return(HG, labels, claim_data)
 
@@ -155,8 +182,11 @@ def geodesic(G):
                                 'Number of cycles': [dict_cycle_num[item] for item in dict_cycle_num]})
     return(df_geodesic)
 
-def simple_network_feature_engineering(HG):
-    nodes_nobrokers = list(HG.nodes("claim")) + list(HG.nodes("car")) + list(HG.nodes("policy"))
+def simple_network_feature_engineering(HG, dataset_1):
+    if dataset_1:
+        nodes_nobrokers = list(HG.nodes("claim")) + list(HG.nodes("car")) + list(HG.nodes("policy"))
+    else:
+        nodes_nobrokers = list(HG.nodes("claim"))+list(HG.nodes("contract"))+list(HG.nodes("counterparty"))
     HG_nobrokers = HG.subgraph(nodes_nobrokers)
     HG_nx_nobrokers = HG_nobrokers.to_networkx()
     

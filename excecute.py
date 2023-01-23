@@ -8,25 +8,39 @@ from sklearn.ensemble import GradientBoostingClassifier
 import Metrics
 import numpy as np
 
-def BiRank_subroutine(HG, labels):
+def BiRank_subroutine(HG, labels, dataset_1):
     print("Starting BiRank calculations")
-    # Extract all nodes from the networks per type
-    HG_claims = HG.nodes("claim")
-    HG_cars = HG.nodes("car")
-    HG_policies = HG.nodes("policy")
-    HG_brokers = HG.nodes("broker")
+    
+    if dataset_1:
+        # Extract all nodes from the networks per type
+        HG_claims = HG.nodes("claim")
+        HG_cars = HG.nodes("car")
+        HG_policies = HG.nodes("policy")
+        HG_brokers = HG.nodes("broker")
+        
+        HG_parties = np.concatenate((HG_cars, HG_policies, HG_brokers))  
+        
+        # Build the bipartite adjacency matrix
+        ADJ = to_bipartite(HG)
 
-    # Split the nodes into two groups
+        fraud_label_column = "Fraud"
+
+    else: 
+        HG_claims = HG.nodes("claim")
+        
+        HG_parties = np.concatenate((HG.nodes("contract"), HG.nodes("broker"), HG.nodes("counterparty")))
+        
+        nodes = list(HG.nodes("claim"))+list(HG.nodes("contract"))+list(HG.nodes("broker"))+list(HG.nodes("counterparty"))
+        ADJ = HG.to_adjacency_matrix(nodes)[:len(HG.nodes("claim")), len(HG.nodes("claim")):]
+
+        fraud_label_column = "Proven_fraud"
+        
     claim_nodes = pd.DataFrame({"ID": HG_claims}).sort_values("ID").set_index("ID")
-
-    HG_parties = np.concatenate((HG_cars, HG_policies, HG_brokers))
     party_nodes = pd.DataFrame({"ID": HG_parties}).set_index("ID")
-
-    # Build the bipartite adjacency matrix
-    ADJ = to_bipartite(HG)
-
+    
+    
     # Set-up the fraud scores
-    fraud = {"FraudInd": labels["Fraud"].values}
+    fraud = {"FraudInd": labels[fraud_label_column].values}
     fraudMat = pd.DataFrame(fraud)
 
     # Do the train-test split for both the nodes and their fraud labels
@@ -41,7 +55,7 @@ def BiRank_subroutine(HG, labels):
     split_size = int(round(train_set_size/2,0))
 
     #First train split
-    fraud_train = {"FraudInd": labels["Fraud"].values[:split_size]}
+    fraud_train = {"FraudInd": labels[fraud_label_column].values[:split_size]}
     fraudMat_train = pd.DataFrame(fraud_train)
     validate_set_fraud = {"FraudInd": [0]*(train_set_size - split_size)}
     fraudMat_test_set = pd.DataFrame(validate_set_fraud)
@@ -57,12 +71,10 @@ def BiRank_subroutine(HG, labels):
     fraudMat_train_res = pd.DataFrame(fraud_train_res)
     fraudMat_test_set = pd.DataFrame(test_set_fraud)
     fraudMat_test = fraudMat_train_res.append(fraudMat_test_set)
-    
-    ADJ = to_bipartite(HG)
-    ADJ = ADJ.transpose().tocsr()
+
     Claims_res, Parties_res, aMat, iterations, convergence = BiRank(ADJ, claim_nodes, party_nodes, fraudMat_test)
 
-    y = labels[train_set_size:].Fraud.values
+    y = labels[train_set_size:][fraud_label_column].values
     pred_bi = Claims_res.sort_values("ID")[train_set_size:].ScaledScore
     fpr_bi, tpr_bi, thresholds = metrics.roc_curve(y, pred_bi)
     plt.plot(fpr_bi, tpr_bi)
@@ -87,17 +99,24 @@ def BiRank_subroutine(HG, labels):
     return(pred_bi, fpr_bi, tpr_bi, res_bi)
     
     
-def Metapath2Vec_subroutine(HG, labels, fraud_node_tf):
+def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
     dimensions = 20
     num_walks = 1
     walk_length = 13  # Go from claim to claim via broker twice
     context_window_size = 10
 
-    metapaths = [
-        ["claim", "car", "claim"],
-        ["claim", "car", "policy", "car", "claim"],
-        ["claim", "car", "policy", "broker", "policy", "car", "claim"]
-    ]
+    if dataset_1:
+        metapaths = [
+            ["claim", "car", "claim"],
+            ["claim", "car", "policy", "car", "claim"],
+            ["claim", "car", "policy", "broker", "policy", "car", "claim"]
+            ]
+    else:
+        metapaths = [
+            ["claim", "counterparty", "claim"],
+            ["claim", "contract","claim"],
+            ["claim", "broker", "claim"]
+            ]
     
     if fraud_node_tf:
         metapaths.append(["claim", "fraud", "claim"])
@@ -144,7 +163,11 @@ def training_gradient_boosting(df_full, selected_features, name):
     
     X_full = df_full[selected_features]
     
-    y_full = df_full["Fraud_y"]
+    try:
+        y_full = df_full["Fraud_y"]
+    
+    except:
+        y_full = df_full["Proven_fraud_y"]
                 
     X_train = X_full.iloc[split_size:train_size, :]
     y_train = y_full[split_size:train_size]
