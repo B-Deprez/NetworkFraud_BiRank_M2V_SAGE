@@ -308,26 +308,14 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
     
     #Metapath2Vec
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
-                         0,                   1,                   2,
-                         3,                   4,                   5,
-                         6,                   7,                   8,
-                         9,                  10,                  11,
-                        12,                  13,                  14,
-                        15,                  16,                  17,
-                        18,                  19]
+                         *range(20)]
     y_test_Meta, y_pred_Meta = training_gradient_boosting(df_full, selected_features, "Metapath2Vec")
     
     #Full Model
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
                          "StdScore",
                          "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree",
-                         0,                   1,                   2,
-                         3,                   4,                   5,
-                         6,                   7,                   8,
-                         9,                  10,                  11,
-                        12,                  13,                  14,
-                        15,                  16,                  17,
-                        18,                  19]
+                         *range(20)]
     y_test_full, y_pred_full = training_gradient_boosting(df_full, selected_features, "Total")
     
     #Plot the AUC together
