@@ -100,10 +100,10 @@ def BiRank_subroutine(HG, labels, dataset_1):
     
     
 def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
-    dimensions = 20
+    dimensions = 128
     num_walks = 1
-    walk_length = 13  # Go from claim to claim via broker twice
-    context_window_size = 10
+    walk_length = 13
+    context_window_size = 7
 
     if dataset_1:
         metapaths = [
@@ -136,14 +136,15 @@ def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
 
     train_size = int(round(0.6 * len(embedding_fraud), 0))
 
-    X_train = embedding_fraud.iloc[:train_size, :20]
-    y_train = embedding_fraud.iloc[:train_size, 20]
+    X_train = embedding_fraud.iloc[:train_size, :dimensions]
+    y_train = embedding_fraud.iloc[:train_size, dimensions]
 
-    X_test = embedding_fraud.iloc[train_size:, :20]
-    y_test = embedding_fraud.iloc[train_size:, 20]
+    X_test = embedding_fraud.iloc[train_size:, :dimensions]
+    y_test = embedding_fraud.iloc[train_size:, dimensions]
+    
+    print("Building the model...")
 
-    embedding_model = GradientBoostingClassifier(n_estimators=100,
-                                                 subsample=0.8,
+    embedding_model = GradientBoostingClassifier(n_estimators=500,
                                                  max_depth=2,
                                                  random_state=1997).fit(X_train, y_train)
 
@@ -175,8 +176,7 @@ def training_gradient_boosting(df_full, selected_features, name):
     X_test = X_full.iloc[train_size:, :]
     y_test = y_full[train_size:]
     
-    embedding_model = GradientBoostingClassifier(n_estimators=100,
-                                                 subsample=0.8,
+    embedding_model = GradientBoostingClassifier(n_estimators=500,
                                                  max_depth=2,
                                                  random_state=1997).fit(X_train, y_train)
 
@@ -308,14 +308,14 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
     
     #Metapath2Vec
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
-                         *range(20)]
+                         *range(128)]
     y_test_Meta, y_pred_Meta = training_gradient_boosting(df_full, selected_features, "Metapath2Vec")
     
     #Full Model
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
                          "StdScore",
                          "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree",
-                         *range(20)]
+                         *range(128)]
     y_test_full, y_pred_full = training_gradient_boosting(df_full, selected_features, "Total")
     
     #Plot the AUC together
