@@ -75,7 +75,7 @@ def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batc
 
     es_callback = EarlyStopping(
         monitor="val_auc", 
-        patience=1, 
+        patience=5, 
         restore_best_weights=True
         )
     
