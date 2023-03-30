@@ -14,7 +14,7 @@ from tensorflow.keras.callbacks import EarlyStopping
 
 import sklearn
 
-def HinSAGE_embedding(HG, claim_data_features, labels):
+def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batch_size = 50, epochs = 50, train_size=0, val_size=0):
     # We will first extract the different nodes and edges 
     # in order to assign them the necesseary featrues
     claim_nodes = pd.DataFrame(index=  HG.nodes("claim"))
@@ -65,23 +65,17 @@ def HinSAGE_embedding(HG, claim_data_features, labels):
     # We want the index to be sorted in order to have the time dimension right
     labels.sort_index(inplace = True)
     
-    train_size = int(np.round(0.5 * len(labels)))
-    val_size = int(np.round(0.6 * len(labels))) - train_size #to have the same train test split as the ohters (otherwise mistakes possible via rounding)
-    
     train_subjects = labels.iloc[:train_size]
     val_subjects = labels.iloc[train_size:(train_size+val_size)]
     test_subjects = labels.iloc[(train_size+val_size):]
     
     # Set-up of the HinSAGE model
-    batch_size = 50
-    epochs = 50
-
     num_samples = [2,32]
     embedding_node_type = "claim"
 
     es_callback = EarlyStopping(
         monitor="val_auc", 
-        patience=5, 
+        patience=1, 
         restore_best_weights=True
         )
     
@@ -103,7 +97,7 @@ def HinSAGE_embedding(HG, claim_data_features, labels):
         )
 
     model = HinSAGE(
-        layer_sizes = [64, 64], 
+        layer_sizes = dimensions, 
         generator = generator, 
         dropout=0)
     

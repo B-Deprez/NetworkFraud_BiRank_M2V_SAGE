@@ -1,5 +1,6 @@
 from BiRank import *
 from metapath2vec import *
+from GraphSAGE_impl import *
 from HelperFunctions import to_bipartite
 import pandas as pd
 from sklearn import metrics
@@ -158,6 +159,40 @@ def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
 
     return(y_pred_meta, fpr_meta, tpr_meta, embedding_fraud)
 
+def HinSAGE_subroutine(HG, claim_data_features, labels):
+    dimensions = [64, 64]
+    batch_size = 50 
+    epochs = 50
+    
+    train_size = int(np.round(0.5 * len(labels)))
+    val_size = int(np.round(0.6 * len(labels))) - train_size #to have the same train test split as the ohters (otherwise mistakes possible via rounding)
+    
+    full_emb = HinSAGE_embedding(
+        HG, 
+        claim_data_features, 
+        labels, 
+        dimensions=dimensions, 
+        batch_size = batch_size, 
+        epochs = epochs,
+        train_size = train_size,
+        val_size = val_size
+        )
+
+    embedding_sage = full_emb.iloc[:, :dimensions[-1]]
+    predictions_sage = full_emb.iloc[:, -1]
+    
+    y_pred_sage = predictions_sage[(train_size+val_size):] #everything after the train and validation are the predictions from the test set, hence the y_pred
+    y_test = labels.sort_index()["Fraud"][(train_size+val_size):]
+    
+    fpr_sage, tpr_sage, thresholds = metrics.roc_curve(y_test, y_pred_sage)
+    plt.plot(fpr_sage, tpr_sage)
+    plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
+    plt.title("AUC: " + str(np.round(metrics.auc(fpr_sage, tpr_sage), 3)))
+    plt.savefig("figures/AUC_GraphSAGE_simple.pdf")
+    plt.close()
+
+    return(y_pred_sage, fpr_sage, tpr_sage, embedding_sage)
+
 def training_gradient_boosting(df_full, selected_features, name):
     train_size = int(round(0.6 * len(df_full), 0))
     split_size = int(round(train_size/2,0))
@@ -262,7 +297,6 @@ def comp_plot(y_test, y_pred_1, y_pred_2, name):
 
     plt.savefig("figures/Complementary_"+str(name)+".pdf")
     plt.close()
-
 
 def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
     print("Putting everything together.")
