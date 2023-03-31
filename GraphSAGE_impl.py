@@ -19,18 +19,18 @@ def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batc
     # in order to assign them the necesseary featrues
     claim_nodes = pd.DataFrame(index=  HG.nodes("claim"))
     claim_nodes.index.name = "ID"
-    car_nodes = pd.DataFrame(index= HG.nodes("car"))
-    car_nodes.index.name = "ID"
-    policy_nodes = pd.DataFrame(index= HG.nodes("policy"))
-    policy_nodes.index.name = "ID"
+    contract_nodes = pd.DataFrame(index= HG.nodes("contract"))
+    contract_nodes.index.name = "ID"
+    counterparty_nodes = pd.DataFrame(index= HG.nodes("counterparty"))
+    counterparty_nodes.index.name = "ID"
     broker_nodes = pd.DataFrame(index= HG.nodes("broker"))
     broker_nodes.index.name = "ID"
     
     nodes = {
         "claim": claim_nodes, 
         "broker": broker_nodes, 
-        "car": car_nodes, 
-        "policy": policy_nodes
+        "contract": contract_nodes, 
+        "counterparty": counterparty_nodes
         }
     edges = HG.edges()
     
@@ -38,15 +38,15 @@ def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batc
     # Only for the claims do we have additional information
     # The other features are set to 1, since HinSAGE requires all nodes to have features to work
     broker_nodes["Feature"] = 1
-    car_nodes["Feature"] = 1
-    policy_nodes["Feature"] = 1
+    contract_nodes["Feature"] = 1
+    counterparty_nodes["Feature"] = 1
     claim_features = claim_data_features[claim_data_features["SI01_NO_SIN"].isin(claim_nodes.index)].reset_index(drop = True).set_index("SI01_NO_SIN")
     
     node_features = {
         "claim": claim_features, 
         "broker": broker_nodes[["Feature"]], 
-        "car": car_nodes[["Feature"]], 
-        "policy": policy_nodes[["Feature"]]
+        "contract": contract_nodes[["Feature"]], 
+        "counterparty": counterparty_nodes[["Feature"]]
         }
     
     # The network is constructed in networkx in order to easily incorporate the features as well
@@ -88,12 +88,12 @@ def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batc
     
     train_gen = generator.flow(
         train_subjects.index, 
-        train_subjects["Fraud"]
+        train_subjects["Proven_fraud"]
         )
     
     val_gen = generator.flow(
         val_subjects.index, 
-        val_subjects["Fraud"]
+        val_subjects["Proven_fraud"]
         )
 
     model = HinSAGE(
@@ -122,9 +122,9 @@ def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batc
     weights = sklearn.utils.class_weight.compute_class_weight(
         'balanced', 
         classes = np.unique(
-            labels["Fraud"]
+            labels["Proven_fraud"]
             ),
-        y = labels["Fraud"].values
+        y = labels["Proven_fraud"].values
         )
     
     weights_dic = {0: weights[0], 1: weights[1]}
@@ -139,7 +139,7 @@ def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batc
         class_weight=weights_dic,
         )
     
-    test_gen = generator.flow(test_subjects.index, test_subjects["Fraud"])
+    test_gen = generator.flow(test_subjects.index, test_subjects["Proven_fraud"])
 
     test_metrics = model.evaluate(test_gen)
     print("\nTest Set Metrics:")
@@ -147,7 +147,7 @@ def HinSAGE_embedding(HG, claim_data_features, labels, dimensions= [64,64], batc
         print("\t{}: {:0.4f}".format(name, val))
         
     # Make both the predictions and the embeddings according to HinSAGE
-    full_gen = generator.flow(labels.index, labels["Fraud"])
+    full_gen = generator.flow(labels.index, labels["Proven_fraud"])
     
     full_prediction = model.predict(full_gen).squeeze()
     

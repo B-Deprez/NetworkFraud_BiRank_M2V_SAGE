@@ -101,10 +101,10 @@ def BiRank_subroutine(HG, labels, dataset_1):
     
     
 def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
-    dimensions = 128
+    dimensions = 64
     num_walks = 1
-    walk_length = 13
-    context_window_size = 7
+    walk_length = 7
+    context_window_size = 5
 
     if dataset_1:
         metapaths = [
@@ -134,6 +134,7 @@ def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
     claim_embedding_df = embedding_df.loc[list(HG.nodes("claim"))]
     embedding_fraud = claim_embedding_df.merge(labels, left_index=True, right_index=True)
     embedding_fraud.sort_index(inplace=True)
+    embedding_fraud.columns = ["Meta_"+str(i) for i in range(dimensions)]
 
     train_size = int(round(0.6 * len(embedding_fraud), 0))
 
@@ -145,7 +146,7 @@ def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
     
     print("Building the model...")
 
-    embedding_model = GradientBoostingClassifier(n_estimators=500,
+    embedding_model = GradientBoostingClassifier(n_estimators=100,
                                                  max_depth=2,
                                                  random_state=1997).fit(X_train, y_train)
 
@@ -179,10 +180,11 @@ def HinSAGE_subroutine(HG, claim_data_features, labels):
         )
 
     embedding_sage = full_emb.iloc[:, :dimensions[-1]]
+    embedding_sage.columns = ["Sage_"+str(i) for i in range(64)]
     predictions_sage = full_emb.iloc[:, -1]
     
     y_pred_sage = predictions_sage[(train_size+val_size):] #everything after the train and validation are the predictions from the test set, hence the y_pred
-    y_test = labels.sort_index()["Fraud"][(train_size+val_size):]
+    y_test = labels.sort_index()["Proven_fraud"][(train_size+val_size):]
     
     fpr_sage, tpr_sage, thresholds = metrics.roc_curve(y_test, y_pred_sage)
     plt.plot(fpr_sage, tpr_sage)
@@ -211,7 +213,7 @@ def training_gradient_boosting(df_full, selected_features, name):
     X_test = X_full.iloc[train_size:, :]
     y_test = y_full[train_size:]
     
-    embedding_model = GradientBoostingClassifier(n_estimators=500,
+    embedding_model = GradientBoostingClassifier(n_estimators=100,
                                                  max_depth=2,
                                                  random_state=1997).fit(X_train, y_train)
 
@@ -298,7 +300,7 @@ def comp_plot(y_test, y_pred_1, y_pred_2, name):
     plt.savefig("figures/Complementary_"+str(name)+".pdf")
     plt.close()
 
-def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embedding, df_Metapath2Vec_embedding, labels):
+def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embedding, df_Metapath2Vec_embedding, df_GraphSage_embedding, labels):
     print("Putting everything together.")
     df_full = df_basic_features.merge(
         df_simple_network,
@@ -316,11 +318,15 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
                 right_on = "index", 
                 how = "inner"
                 ).merge(
-                    labels.reset_index(),
-                    left_on = "Claim_ID", 
-                    right_on = "SI01_NO_SIN",
+                    df_GraphSage_embedding.reset_index(),
+                    on = "SI01_NO_SIN",
                     how = "inner"
-                    ).sort_values("Claim_ID")
+                    ).merge(
+                        labels.reset_index(),
+                        left_on = "Claim_ID", 
+                        right_on = "SI01_NO_SIN",
+                        how = "inner"
+                        ).sort_values("Claim_ID")
 
     #Basic Model
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU"]
@@ -341,15 +347,21 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
     y_test_BiRank, y_pred_BiRank = training_gradient_boosting(df_full, selected_features, "BiRank")
     
     #Metapath2Vec
-    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
-                         *range(128)]
+    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU"] + \
+        ["Meta_"+str(i) for i in range(64)]
     y_test_Meta, y_pred_Meta = training_gradient_boosting(df_full, selected_features, "Metapath2Vec")
+    
+    #HinSAGE
+    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU"] + \
+        ["Sage_"+str(i) for i in range(64)]
+    y_test_sage, y_pred_sage = training_gradient_boosting(df_full, selected_features, "Metapath2Vec")
     
     #Full Model
     selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
                          "StdScore",
-                         "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree",
-                         *range(128)]
+                         "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree"] + \
+        ["Meta_"+str(i) for i in range(64)] + \
+            ["Sage_"+str(i) for i in range(64)]
     y_test_full, y_pred_full = training_gradient_boosting(df_full, selected_features, "Total")
     
     #Plot the AUC together
@@ -357,6 +369,7 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
     AUC_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     AUC_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     AUC_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
+    AUC_plot(y_test_sage, y_pred_sage, close_plot=False, name="GraphSAGE", plotname="full")
     AUC_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
     
     #Plot the AP together
@@ -364,6 +377,7 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
     AP_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     AP_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     AP_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
+    AP_plot(y_test_sage, y_pred_sage, close_plot=False, name="GraphSAGE", plotname="full")
     AP_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
 
     #Plot the lift curves
@@ -371,12 +385,14 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
     lift_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     lift_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     lift_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
+    lift_plot(y_test_sage, y_pred_sage, close_plot=False, name="GraphSAGE", plotname="full")
     lift_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
     
     #Plot the complementarity
     comp_plot(y_test_simple, y_pred_simple, y_pred_simple_network, name="Simple Network Features")
     comp_plot(y_test_simple, y_pred_simple, y_pred_BiRank, name = "BiRank")
     comp_plot(y_test_simple, y_pred_simple, y_pred_Meta, name = "Meta")
+    comp_plot(y_test_simple, y_pred_simple, y_pred_sage, name = "Sage")
     comp_plot(y_test_simple, y_pred_simple, y_pred_full, name = "Full")
     
     

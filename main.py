@@ -16,13 +16,13 @@ def run_model(dataset_1, fraud_node_tf):
     claim_data_features = feature_engineering(claim_data)
     
     # Calculate all results for HinSAGE and generate figures
-    y_pred_sage, fpr_sage, tpr_sage, embedding_sage = excecute.HinSAGE_subroutine(HG, claim_data_features, labels)    
+    y_pred_sage, fpr_sage, tpr_sage, res_sage = excecute.HinSAGE_subroutine(HG, claim_data_features, labels)    
     
     # Feature engineering for simple network features
     simple_network_features = simple_network_feature_engineering(HG, dataset_1)
 
     # Do the metrics calculations for full model
-    excecute.fullModel_subroutine(claim_data_features, simple_network_features ,res_bi, res_meta, labels)
+    excecute.fullModel_subroutine(claim_data_features, simple_network_features ,res_bi, res_meta, res_sage, labels)
     
 
 if __name__ == '__main__':
