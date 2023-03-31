@@ -134,7 +134,7 @@ def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
     claim_embedding_df = embedding_df.loc[list(HG.nodes("claim"))]
     embedding_fraud = claim_embedding_df.merge(labels, left_index=True, right_index=True)
     embedding_fraud.sort_index(inplace=True)
-    embedding_fraud.columns = ["Meta_"+str(i) for i in range(dimensions)]
+    embedding_fraud.columns = ["Meta_"+str(i) for i in range(dimensions)] + list(labels.columns)
 
     train_size = int(round(0.6 * len(embedding_fraud), 0))
 
