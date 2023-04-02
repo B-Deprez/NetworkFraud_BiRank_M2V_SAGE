@@ -102,7 +102,7 @@ def BiRank_subroutine(HG, labels, dataset_1):
     
 def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
     dimensions = 64
-    num_walks = 1
+    num_walks = 2
     walk_length = 7
     context_window_size = 5
 
