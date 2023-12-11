@@ -80,7 +80,9 @@ def BiRank_subroutine(HG, labels, dataset_1):
     fpr_bi, tpr_bi, thresholds = metrics.roc_curve(y, pred_bi)
     plt.plot(fpr_bi, tpr_bi)
     plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
-    plt.title("AUC: " + str(np.round(metrics.auc(fpr_bi, tpr_bi), 3)))
+    plt.title("AUC-ROC: " + str(np.round(metrics.auc(fpr_bi, tpr_bi), 3)))
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
     plt.savefig("figures/AUC_BiRank_simple.pdf")
     plt.close()
     
@@ -154,7 +156,9 @@ def Metapath2Vec_subroutine(HG, labels, dataset_1, fraud_node_tf):
     fpr_meta, tpr_meta, thresholds = metrics.roc_curve(y_test, y_pred_meta)
     plt.plot(fpr_meta, tpr_meta)
     plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
-    plt.title("AUC: " + str(np.round(metrics.auc(fpr_meta, tpr_meta), 3)))
+    plt.title("AUC-ROC: " + str(np.round(metrics.auc(fpr_meta, tpr_meta), 3)))
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
     plt.savefig("figures/AUC_Metapath2vec_simple.pdf")
     plt.close()
 
@@ -189,7 +193,9 @@ def HinSAGE_subroutine(HG, claim_data_features, labels):
     fpr_sage, tpr_sage, thresholds = metrics.roc_curve(y_test, y_pred_sage)
     plt.plot(fpr_sage, tpr_sage)
     plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
-    plt.title("AUC: " + str(np.round(metrics.auc(fpr_sage, tpr_sage), 3)))
+    plt.title("AUC-ROC: " + str(np.round(metrics.auc(fpr_sage, tpr_sage), 3)))
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
     plt.savefig("figures/AUC_GraphSAGE_simple.pdf")
     plt.close()
 
@@ -229,7 +235,9 @@ def AUC_plot(y_test, y_pred, close_plot, name, plotname):
     # plt.savefig("figures/AUC_full_model_"+str(name)+".pdf")
     
     if close_plot: 
-        plt.title("AUC")
+        plt.title("AUC-ROC")
+        plt.xlabel("FPR")
+        plt.ylabel("TPR")
         plt.plot([0, 1], [0, 1], color="grey", alpha=0.5)
         plt.legend()
         plt.savefig("figures/AUC_"+str(plotname)+".pdf")
@@ -241,7 +249,9 @@ def AP_plot(y_test, y_pred, close_plot, name, plotname):
     plt.plot(recall_base,precision_base, label = name +": "+ str(AP), alpha =0.7)
     
     if close_plot:
-        plt.title("Average Precision")
+        plt.title("AUC-PRC")
+        plt.xlabel("Recall")
+        plt.ylabel("Precision")
         plt.legend()
         plt.savefig("figures/AP_"+str(plotname)+".pdf")
         plt.close()
@@ -253,6 +263,8 @@ def lift_plot(y_test, y_pred, close_plot, name, plotname):
     
     if close_plot:
         plt.title("Lift Curve")
+        plt.xlabel("p")
+        plt.ylabel("Lift")
         plt.legend()
         plt.savefig("figures/Lift_"+str(plotname)+".pdf")
         plt.close()
@@ -357,43 +369,43 @@ def fullModel_subroutine(df_basic_features, df_simple_network, df_BiRank_embeddi
     y_test_sage, y_pred_sage = training_gradient_boosting(df_full, selected_features, "Metapath2Vec")
     
     #Full Model
-    selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
-                         "StdScore",
-                         "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree"] + \
-        ["Meta_"+str(i) for i in range(64)] + \
-            ["Sage_"+str(i) for i in range(64)]
-    y_test_full, y_pred_full = training_gradient_boosting(df_full, selected_features, "Total")
+    #selected_features = ["Month_Accident", "Closest_Hour", "Reporting_delay", "Day_Accident", "SI01_C_FAM_PROD","SI01_C_CAU",
+    #                     "StdScore",
+    #                     "Geodesic distance", "Number of cycles", "Betweenness Centrality", "degree"] + \
+    #    ["Meta_"+str(i) for i in range(64)] + \
+    #        ["Sage_"+str(i) for i in range(64)]
+    #y_test_full, y_pred_full = training_gradient_boosting(df_full, selected_features, "Total")
     
     #Plot the AUC together
     AUC_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
     AUC_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     AUC_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     AUC_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
-    AUC_plot(y_test_sage, y_pred_sage, close_plot=False, name="GraphSAGE", plotname="full")
-    AUC_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
+    AUC_plot(y_test_sage, y_pred_sage, close_plot=True, name="GraphSAGE", plotname="full")
+    #AUC_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
     
     #Plot the AP together
     AP_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
     AP_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     AP_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     AP_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
-    AP_plot(y_test_sage, y_pred_sage, close_plot=False, name="GraphSAGE", plotname="full")
-    AP_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
+    AP_plot(y_test_sage, y_pred_sage, close_plot=True, name="GraphSAGE", plotname="full")
+    #AP_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
 
     #Plot the lift curves
     lift_plot(y_test_simple, y_pred_simple, close_plot=False, name="Simple Model", plotname="full")
     lift_plot(y_test_simple_network, y_pred_simple_network, close_plot=False, name="Simple Network Features", plotname="full")
     lift_plot(y_test_BiRank, y_pred_BiRank, close_plot=False, name="BiRank", plotname="full")
     lift_plot(y_test_Meta, y_pred_Meta, close_plot=False, name="Metapath2Vec", plotname="full")
-    lift_plot(y_test_sage, y_pred_sage, close_plot=False, name="GraphSAGE", plotname="full")
-    lift_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
+    lift_plot(y_test_sage, y_pred_sage, close_plot=True, name="GraphSAGE", plotname="full")
+    #lift_plot(y_test_full, y_pred_full, close_plot=True, name="Full Model", plotname="full")
     
     #Plot the complementarity
     comp_plot(y_test_simple, y_pred_simple, y_pred_simple_network, name="Simple Network Features")
     comp_plot(y_test_simple, y_pred_simple, y_pred_BiRank, name = "BiRank")
     comp_plot(y_test_simple, y_pred_simple, y_pred_Meta, name = "Meta")
     comp_plot(y_test_simple, y_pred_simple, y_pred_sage, name = "Sage")
-    comp_plot(y_test_simple, y_pred_simple, y_pred_full, name = "Full")
+    #comp_plot(y_test_simple, y_pred_simple, y_pred_full, name = "Full")
     
     
     
