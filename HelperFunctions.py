@@ -114,7 +114,7 @@ def feature_engineering(claims_data):
     claims_data["Day_Accident"] = claims_data["SI01_D_SURV_SIN"].dt.weekday
     claims_data["Month_Accident"] = claims_data["SI01_D_SURV_SIN"].dt.month
 
-    claims_data["SI01_H_SIN"].replace(0, pd.NA, inplace = True)
+    claims_data["SI01_H_SIN"].fillna(0, inplace=True)
     decimal_hours = claims_data["SI01_H_SIN"]//100+claims_data["SI01_H_SIN"]%100/60
 
     #Some wrong hours. This is set to 0 = <NA>
