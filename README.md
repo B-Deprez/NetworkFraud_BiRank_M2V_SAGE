@@ -1,4 +1,4 @@
-# Network Analytics for Insurance Fraud Detection - A Critical Case Study </br><sub><sub> Bruno Deprez, Félix Vandervorst, Wouter Verbeke, Tim Verdonck, Bart Baesens [[2024]](https://link.springer.com/journal/13385)</sub></sub>
+# Network Analytics for Insurance Fraud Detection - A Critical Case Study </br><sub><sub> Bruno Deprez, Félix Vandervorst, Wouter Verbeke, Tim Verdonck, Bart Baesens [[2024]](https://link.springer.com/article/10.1007/s13385-024-00384-6)</sub></sub>
 
 The source code of the experimental evaluation of the paper Deprez et al. (2024) - Network Analytics for Insurance Fraud Detection -- A Critical Case Study.
 
@@ -30,7 +30,14 @@ Please cite our paper and/or code as follows:
 
 ```tex
 
-@article{}
+
+@article{deprez2024network,
+	author = {Deprez, Bruno and Vandervorst, F{\'e}lix and Verbeke, Wouter and Verdonck, Tim and Baesens, Bart},
+	doi = {10.1007/s13385-024-00384-6},
+	journal = {European Actuarial Journal},
+	title = {Network analytics for insurance fraud detection: a critical case study},
+	url = {https://doi.org/10.1007/s13385-024-00384-6},
+	year = {2024}
 
 ```
 
