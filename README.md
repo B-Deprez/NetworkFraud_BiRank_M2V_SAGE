@@ -38,6 +38,6 @@ Please cite our paper and/or code as follows:
 	title = {Network analytics for insurance fraud detection: a critical case study},
 	url = {https://doi.org/10.1007/s13385-024-00384-6},
 	year = {2024}
-
+}
 ```
 
