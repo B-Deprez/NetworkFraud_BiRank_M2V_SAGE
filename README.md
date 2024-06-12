@@ -1,5 +1,6 @@
 # Network Analytics for Insurance Fraud Detection - A Critical Case Study </br><sub><sub> Bruno Deprez, Félix Vandervorst, Wouter Verbeke, Tim Verdonck, Bart Baesens [[2024]](https://link.springer.com/article/10.1007/s13385-024-00384-6)</sub></sub>
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/network-analytics-for-insurance-fraud/fraud-detection-on-healthcare-provider-fraud)](https://paperswithcode.com/sota/fraud-detection-on-healthcare-provider-fraud?p=network-analytics-for-insurance-fraud)
 
 
