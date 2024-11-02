@@ -39,9 +39,11 @@ Please cite our paper and/or code as follows:
 	author = {Deprez, Bruno and Vandervorst, F{\'e}lix and Verbeke, Wouter and Verdonck, Tim and Baesens, Bart},
 	doi = {10.1007/s13385-024-00384-6},
 	journal = {European Actuarial Journal},
+	volume = {14},
+	number = {3},
+	pages = {965--990},
 	title = {Network analytics for insurance fraud detection: a critical case study},
 	url = {https://doi.org/10.1007/s13385-024-00384-6},
 	year = {2024}
 }
 ```
-
