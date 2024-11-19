@@ -1,12 +1,12 @@
-from BiRank import *
-from metapath2vec import *
-from GraphSAGE_impl import *
-from HelperFunctions import to_bipartite
+from src.BiRank import *
+from src.metapath2vec import *
+from src.GraphSAGE_impl import *
+from src.HelperFunctions import to_bipartite
 import pandas as pd
 from sklearn import metrics
 import matplotlib.pyplot as plt
 from sklearn.ensemble import GradientBoostingClassifier
-import Metrics
+import src.Metrics as Metrics
 import numpy as np
 
 def BiRank_subroutine(HG, labels, dataset_1):
