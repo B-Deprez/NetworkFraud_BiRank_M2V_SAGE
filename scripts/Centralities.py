@@ -1,4 +1,4 @@
-from HelperFunctions import load_network, feature_engineering
+from src.HelperFunctions import load_network, feature_engineering
 import networkx as nx
 import networkit
 import pandas as pd

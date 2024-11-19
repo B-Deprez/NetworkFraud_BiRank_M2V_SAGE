@@ -1,0 +1,10 @@
+pandas
+numpy
+scipy
+networkx
+stellargraph
+gensim
+scikit-learn
+tensorflow
+keras
+matplotlib

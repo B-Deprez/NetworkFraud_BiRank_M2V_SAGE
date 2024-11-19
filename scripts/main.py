@@ -1,5 +1,5 @@
-from HelperFunctions import load_network, feature_engineering, simple_network_feature_engineering
-import excecute
+from src.HelperFunctions import load_network, feature_engineering, simple_network_feature_engineering
+import scripts.excecute as excecute
 
 def run_model(dataset_1, fraud_node_tf):
     # Start by initialising the data
